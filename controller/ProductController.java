@@ -1,18 +1,16 @@
 package controller;
 
+import dao.CategoryDAO;
 import dao.ProductDAO;
+import model.Category;
 import model.Product;
 
 import javax.servlet.*;
-import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.*;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 
-@MultipartConfig // <-- Add this annotation to handle multipart/form-data (file upload)
 public class ProductController extends HttpServlet {
     private ProductDAO productDAO;
 
@@ -28,7 +26,8 @@ public class ProductController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
-        if (action == null) action = "list";
+        if (action == null)
+            action = "list";
 
         try {
             switch (action) {
@@ -59,8 +58,16 @@ public class ProductController extends HttpServlet {
         dispatcher.forward(request, response);
     }
 
+    // Load categories from DB and add to request attribute
+    private void loadCategories(HttpServletRequest request) throws SQLException {
+        CategoryDAO categoryDAO = new CategoryDAO();
+        List<Category> categories = categoryDAO.getAllCategories();
+        request.setAttribute("categories", categories);
+    }
+
     private void showNewForm(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
+        loadCategories(request); // load categories for dropdown
         RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
         dispatcher.forward(request, response);
     }
@@ -70,6 +77,7 @@ public class ProductController extends HttpServlet {
         int id = Integer.parseInt(request.getParameter("id"));
         Product existingProduct = productDAO.getProductById(id);
         request.setAttribute("product", existingProduct);
+        loadCategories(request); // load categories for dropdown
         RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
         dispatcher.forward(request, response);
     }
@@ -88,7 +96,7 @@ public class ProductController extends HttpServlet {
     }
 
     private void saveOrUpdateProduct(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException, ServletException {
+            throws SQLException, IOException {
         String idStr = request.getParameter("id");
         int id = (idStr == null || idStr.isEmpty()) ? 0 : Integer.parseInt(idStr);
 
@@ -97,29 +105,7 @@ public class ProductController extends HttpServlet {
         String description = request.getParameter("description");
         double price = Double.parseDouble(request.getParameter("price"));
         int stock = Integer.parseInt(request.getParameter("stock"));
-
-        // --- Handle image upload ---
-        Part filePart = request.getPart("imageFile");
-        String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
-        String imageUrl = "";
-
-        if (fileName != null && !fileName.isEmpty()) {
-            String uploadDir = getServletContext().getRealPath("/") + "images";
-            File uploadFolder = new File(uploadDir);
-            if (!uploadFolder.exists()) uploadFolder.mkdirs();
-
-            String filePath = uploadDir + File.separator + fileName;
-            filePart.write(filePath);
-
-            // Store relative URL to image
-            imageUrl = request.getContextPath() + "/images/" + fileName;
-        } else {
-            // Keep existing image URL if editing
-            if (id != 0) {
-                Product existing = productDAO.getProductById(id);
-                imageUrl = existing.getImageUrl();
-            }
-        }
+        String imageUrl = request.getParameter("imageUrl");
 
         Product product = new Product();
         product.setCategoryId(categoryId);
@@ -135,7 +121,6 @@ public class ProductController extends HttpServlet {
             product.setId(id);
             productDAO.updateProduct(product);
         }
-
         response.sendRedirect(request.getContextPath() + "/products?action=list");
     }
 
