@@ -41,6 +41,6 @@
         </tr>
     </c:forEach>
 </table>
-<a href="index.jsp">Back to Home Page</a> | <a href="cart.jsp">🛒 View Cart</a>
+<a href="index.jsp">Back to Home Page</a> | <a href="cart.jsp"> View Cart</a>
 </body>
 </html>

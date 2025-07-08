@@ -16,13 +16,14 @@ public class OrderDAO {
     }
 
     public int createOrder(Order order) throws SQLException {
-        String sql = "INSERT INTO orders (user_id) VALUES (?) RETURNING id";
+        String sql = "INSERT INTO orders (user_id, total) VALUES (?, ?) RETURNING id";
         try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, order.getUserId());
+            stmt.setDouble(2, order.getTotal());
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1); // return generated order ID
+                return rs.getInt("id");
             }
         }
         return -1;

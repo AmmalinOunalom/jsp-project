@@ -1,12 +1,11 @@
 package model;
 
-import java.util.Date;
 import java.util.List;
 
 public class Order {
     private int id;
     private int userId;
-    private Date orderDate;
+    private double total;
     private List<OrderItem> items;
 
     public int getId() {
@@ -25,12 +24,12 @@ public class Order {
         this.userId = userId;
     }
 
-    public Date getOrderDate() {
-        return orderDate;
+    public double getTotal() {
+        return total;
     }
 
-    public void setOrderDate(Date orderDate) {
-        this.orderDate = orderDate;
+    public void setTotal(double total) {
+        this.total = total;
     }
 
     public List<OrderItem> getItems() {
