@@ -6,21 +6,23 @@ import model.Category;
 import model.Product;
 
 import javax.servlet.*;
-import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.*;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 
-@MultipartConfig
 public class ProductController extends HttpServlet {
     private ProductDAO productDAO;
 
     @Override
     public void init() throws ServletException {
         productDAO = new ProductDAO();
+    }
+
+    private boolean isAdmin(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        Integer roleId = (session != null) ? (Integer) session.getAttribute("roleId") : null;
+        return roleId != null && roleId == 1;
     }
 
     @Override
@@ -36,12 +38,24 @@ public class ProductController extends HttpServlet {
         try {
             switch (action) {
                 case "new":
+                    if (!isAdmin(request)) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                        return;
+                    }
                     showNewForm(request, response);
                     break;
                 case "edit":
+                    if (!isAdmin(request)) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                        return;
+                    }
                     showEditForm(request, response);
                     break;
                 case "delete":
+                    if (!isAdmin(request)) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                        return;
+                    }
                     deleteProduct(request, response);
                     break;
                 case "list":
@@ -58,8 +72,7 @@ public class ProductController extends HttpServlet {
             throws SQLException, ServletException, IOException {
         List<Product> products = productDAO.getAllProducts();
         request.setAttribute("listProduct", products);
-        RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-list.jsp");
-        dispatcher.forward(request, response);
+        request.getRequestDispatcher("/view/product-list.jsp").forward(request, response);
     }
 
     private void loadCategories(HttpServletRequest request) throws SQLException {
@@ -71,8 +84,7 @@ public class ProductController extends HttpServlet {
     private void showNewForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         loadCategories(request);
-        RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
-        dispatcher.forward(request, response);
+        request.getRequestDispatcher("/view/product-form.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -81,13 +93,17 @@ public class ProductController extends HttpServlet {
         Product existingProduct = productDAO.getProductById(id);
         request.setAttribute("product", existingProduct);
         loadCategories(request);
-        RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
-        dispatcher.forward(request, response);
+        request.getRequestDispatcher("/view/product-form.jsp").forward(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        if (!isAdmin(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
@@ -99,7 +115,7 @@ public class ProductController extends HttpServlet {
     }
 
     private void saveOrUpdateProduct(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException, ServletException {
+            throws SQLException, IOException {
         String idStr = request.getParameter("id");
         int id = (idStr == null || idStr.isEmpty()) ? 0 : Integer.parseInt(idStr);
 
@@ -108,17 +124,7 @@ public class ProductController extends HttpServlet {
         String description = request.getParameter("description");
         double price = Double.parseDouble(request.getParameter("price"));
         int stock = Integer.parseInt(request.getParameter("stock"));
-
-        Part imagePart = request.getPart("imageFile");
-        String fileName = Paths.get(imagePart.getSubmittedFileName()).getFileName().toString();
-        String uploadPath = getServletContext().getRealPath("") + File.separator + "uploads";
-
-        File uploadDir = new File(uploadPath);
-        if (!uploadDir.exists())
-            uploadDir.mkdir();
-
-        imagePart.write(uploadPath + File.separator + fileName);
-        String imageUrl = "uploads/" + fileName;
+        String imageUrl = request.getParameter("imageUrl");
 
         Product product = new Product();
         product.setCategoryId(categoryId);

@@ -12,10 +12,8 @@ public class ProductDAO {
 
     private Connection getConnection() throws SQLException {
         try {
-            // Load PostgreSQL JDBC Driver explicitly
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
-            // Driver class not found, stop and throw SQLException
             throw new SQLException("PostgreSQL JDBC Driver not found.", e);
         }
         return DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
@@ -90,6 +88,24 @@ public class ProductDAO {
             stmt.setString(6, product.getImageUrl());
             stmt.setInt(7, product.getId());
             stmt.executeUpdate();
+        }
+    }
+
+    // Atomic decrement stock in DB:
+    public void updateProductStock(Connection conn, int productId, int quantity) throws SQLException {
+        String sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, quantity);
+            stmt.setInt(2, productId);
+            stmt.setInt(3, quantity);
+
+            System.out.println("[DEBUG] Executing stock update: productId=" + productId + ", quantity=" + quantity);
+            int affectedRows = stmt.executeUpdate();
+            System.out.println("[DEBUG] Rows affected for stock update: " + affectedRows);
+
+            if (affectedRows == 0) {
+                throw new SQLException("Not enough stock or product ID does not exist: " + productId);
+            }
         }
     }
 

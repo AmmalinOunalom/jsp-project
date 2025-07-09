@@ -6,6 +6,7 @@ import model.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.IOException;
+import java.sql.Connection;
 import java.util.*;
 
 public class CheckoutServlet extends HttpServlet {
@@ -50,9 +51,13 @@ public class CheckoutServlet extends HttpServlet {
         order.setTotal(total);
         order.setItems(orderItems);
 
-        try {
-            int orderId = orderDAO.createOrder(order);
-            orderDAO.insertOrderItems(orderId, orderItems);
+        try (Connection conn = orderDAO.getConnection()) {
+            conn.setAutoCommit(false);
+
+            int orderId = orderDAO.createOrder(conn, order);
+            orderDAO.insertOrderItems(conn, orderId, orderItems);
+
+            conn.commit();
 
             // Save order ID in session for payment step
             session.setAttribute("currentOrderId", orderId);

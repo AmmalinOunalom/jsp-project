@@ -18,8 +18,8 @@ public class HomeController extends HttpServlet {
             CategoryDAO categoryDAO = new CategoryDAO();
             List<Category> categories = categoryDAO.getAllCategories();
             request.setAttribute("categories", categories);
-            RequestDispatcher dispatcher = request.getRequestDispatcher("/index.jsp");
-            dispatcher.forward(request, response);
+
+            request.getRequestDispatcher("/index.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

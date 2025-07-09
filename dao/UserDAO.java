@@ -37,12 +37,13 @@ public class UserDAO {
     }
 
     public void insertUser(User user) throws SQLException {
-        String sql = "INSERT INTO users (username, password, email) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO users (username, password, email, role_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, hashPassword(user.getPassword())); // store hashed password
             stmt.setString(3, user.getEmail());
+            stmt.setInt(4, user.getRoleId()); // set role_id on insert
             stmt.executeUpdate();
         }
     }
@@ -59,6 +60,7 @@ public class UserDAO {
                     user.setUsername(rs.getString("username"));
                     user.setPassword(rs.getString("password")); // hashed password
                     user.setEmail(rs.getString("email"));
+                    user.setRoleId(rs.getInt("role_id")); // <-- Set role_id here
                     return user;
                 }
             }
@@ -78,6 +80,7 @@ public class UserDAO {
                     user.setUsername(rs.getString("username"));
                     user.setPassword(rs.getString("password"));
                     user.setEmail(rs.getString("email"));
+                    user.setRoleId(rs.getInt("role_id")); // <-- Set role_id here
                     return user;
                 }
             }
@@ -97,6 +100,7 @@ public class UserDAO {
                 user.setUsername(rs.getString("username"));
                 user.setPassword(rs.getString("password")); // hashed password
                 user.setEmail(rs.getString("email"));
+                user.setRoleId(rs.getInt("role_id")); // <-- Set role_id here
                 users.add(user);
             }
         }
@@ -115,6 +119,7 @@ public class UserDAO {
                     user.setUsername(rs.getString("username"));
                     user.setPassword(rs.getString("password")); // hashed password
                     user.setEmail(rs.getString("email"));
+                    user.setRoleId(rs.getInt("role_id")); // <-- Set role_id here
                     return user;
                 }
             }
