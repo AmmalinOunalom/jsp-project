@@ -6,11 +6,15 @@ import model.Category;
 import model.Product;
 
 import javax.servlet.*;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.*;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 
+@MultipartConfig
 public class ProductController extends HttpServlet {
     private ProductDAO productDAO;
 
@@ -58,7 +62,6 @@ public class ProductController extends HttpServlet {
         dispatcher.forward(request, response);
     }
 
-    // Load categories from DB and add to request attribute
     private void loadCategories(HttpServletRequest request) throws SQLException {
         CategoryDAO categoryDAO = new CategoryDAO();
         List<Category> categories = categoryDAO.getAllCategories();
@@ -67,7 +70,7 @@ public class ProductController extends HttpServlet {
 
     private void showNewForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
-        loadCategories(request); // load categories for dropdown
+        loadCategories(request);
         RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
         dispatcher.forward(request, response);
     }
@@ -77,7 +80,7 @@ public class ProductController extends HttpServlet {
         int id = Integer.parseInt(request.getParameter("id"));
         Product existingProduct = productDAO.getProductById(id);
         request.setAttribute("product", existingProduct);
-        loadCategories(request); // load categories for dropdown
+        loadCategories(request);
         RequestDispatcher dispatcher = request.getRequestDispatcher("/view/product-form.jsp");
         dispatcher.forward(request, response);
     }
@@ -96,7 +99,7 @@ public class ProductController extends HttpServlet {
     }
 
     private void saveOrUpdateProduct(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
+            throws SQLException, IOException, ServletException {
         String idStr = request.getParameter("id");
         int id = (idStr == null || idStr.isEmpty()) ? 0 : Integer.parseInt(idStr);
 
@@ -105,7 +108,17 @@ public class ProductController extends HttpServlet {
         String description = request.getParameter("description");
         double price = Double.parseDouble(request.getParameter("price"));
         int stock = Integer.parseInt(request.getParameter("stock"));
-        String imageUrl = request.getParameter("imageUrl");
+
+        Part imagePart = request.getPart("imageFile");
+        String fileName = Paths.get(imagePart.getSubmittedFileName()).getFileName().toString();
+        String uploadPath = getServletContext().getRealPath("") + File.separator + "uploads";
+
+        File uploadDir = new File(uploadPath);
+        if (!uploadDir.exists())
+            uploadDir.mkdir();
+
+        imagePart.write(uploadPath + File.separator + fileName);
+        String imageUrl = "uploads/" + fileName;
 
         Product product = new Product();
         product.setCategoryId(categoryId);

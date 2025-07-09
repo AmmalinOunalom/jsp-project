@@ -6,6 +6,10 @@
     if (cart == null || cart.isEmpty()) {
 %>
     <p>Your cart is empty.</p>
+    <!-- Back to Product List button -->
+    <a href="<%= request.getContextPath() %>/products?action=list">
+        <button type="button">Back to Product List</button>
+    </a>
 <%
     } else {
 %>
@@ -48,6 +52,11 @@
     <form action="CheckoutServlet" method="post">
         <input type="submit" value="Proceed to Pay" />
     </form>
+
+    <!-- Back to Product List button -->
+    <a href="<%= request.getContextPath() %>/products?action=list">
+        <button type="button">Back to Product List</button>
+    </a>
 <%
     }
 %>
