@@ -2,7 +2,6 @@ package dao;
 
 import model.Order;
 import model.OrderItem;
-
 import java.sql.*;
 import java.util.List;
 
@@ -15,6 +14,7 @@ public class OrderDAO {
         return DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
     }
 
+    // Insert order and return generated order ID
     public int createOrder(Connection conn, Order order) throws SQLException {
         String sql = "INSERT INTO orders (user_id, total) VALUES (?, ?) RETURNING id";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -29,6 +29,7 @@ public class OrderDAO {
         }
     }
 
+    // Insert order items for an order
     public void insertOrderItems(Connection conn, int orderId, List<OrderItem> items) throws SQLException {
         String sql = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -43,7 +44,7 @@ public class OrderDAO {
         }
     }
 
-    // items, and decreasing stock
+    // Create order, insert items, and decrease product stock in one transaction
     public int createOrderWithItemsAndDecreaseStock(Order order, ProductDAO productDAO) throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -52,6 +53,7 @@ public class OrderDAO {
                 int orderId = createOrder(conn, order);
                 insertOrderItems(conn, orderId, order.getItems());
 
+                // Decrease stock for each product ordered
                 for (OrderItem item : order.getItems()) {
                     System.out.println("[DEBUG] Decreasing stock for product ID: " + item.getProductId()
                             + ", quantity: " + item.getQuantity());

@@ -58,13 +58,10 @@ public class OrderServlet extends HttpServlet {
         List<OrderItem> items = new ArrayList<>();
 
         try {
-            // Validate stock for each product BEFORE creating the order
             for (int i = 0; i < productIds.length; i++) {
                 int productId = Integer.parseInt(productIds[i]);
                 int quantity = Integer.parseInt(quantities[i]);
                 double price = Double.parseDouble(prices[i]);
-
-                System.out.println("[DEBUG] Checking stock for product ID: " + productId + ", quantity: " + quantity);
 
                 Product product = productDAO.getProductById(productId);
                 if (product == null) {
@@ -74,15 +71,15 @@ public class OrderServlet extends HttpServlet {
                     return;
                 }
 
+                System.out.println("[DEBUG] Product ID: " + productId + ", Stock: " + product.getStock()
+                        + ", Requested Quantity: " + quantity);
+
                 if (quantity > product.getStock()) {
-                    System.out.println("[DEBUG] Insufficient stock for product ID: " + productId + ", stock: "
-                            + product.getStock());
+                    System.out.println("[DEBUG] Insufficient stock for product ID: " + productId);
                     req.setAttribute("error", "Insufficient stock for product ID: " + productId);
                     req.getRequestDispatcher("error.jsp").forward(req, resp);
                     return;
                 }
-
-                System.out.println("[DEBUG] Stock OK for product ID: " + productId);
 
                 OrderItem item = new OrderItem();
                 item.setProductId(productId);
@@ -91,12 +88,10 @@ public class OrderServlet extends HttpServlet {
                 items.add(item);
             }
 
-            // Prepare the order
             Order order = new Order();
             order.setUserId(user.getId());
             order.setItems(items);
 
-            // Use the DAO method that handles everything transactionally
             int orderId = orderDAO.createOrderWithItemsAndDecreaseStock(order, productDAO);
             System.out.println("[DEBUG] Order created successfully with ID: " + orderId);
 

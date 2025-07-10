@@ -10,7 +10,7 @@ public class ProductDAO {
     private String jdbcUsername = "postgres";
     private String jdbcPassword = "1234";
 
-    private Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
@@ -93,6 +93,24 @@ public class ProductDAO {
 
     // Atomic decrement stock in DB:
     public void updateProductStock(Connection conn, int productId, int quantity) throws SQLException {
+        // Check current stock
+        String checkStockSql = "SELECT stock FROM products WHERE id = ?";
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkStockSql)) {
+            checkStmt.setInt(1, productId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    int currentStock = rs.getInt("stock");
+                    System.out.println("[DEBUG] Current stock for product " + productId + ": " + currentStock);
+                    if (currentStock < quantity) {
+                        throw new SQLException("Not enough stock to decrease. Requested: " + quantity + ", Available: "
+                                + currentStock);
+                    }
+                } else {
+                    throw new SQLException("Product ID does not exist: " + productId);
+                }
+            }
+        }
+
         String sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, quantity);
@@ -106,6 +124,12 @@ public class ProductDAO {
             if (affectedRows == 0) {
                 throw new SQLException("Not enough stock or product ID does not exist: " + productId);
             }
+        }
+
+        // If autocommit is false, commit explicitly
+        if (!conn.getAutoCommit()) {
+            conn.commit();
+            System.out.println("[DEBUG] Transaction committed.");
         }
     }
 

@@ -1,12 +1,12 @@
 package controller;
 
 import dao.OrderDAO;
+import dao.ProductDAO;
 import model.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.*;
 
 public class CheckoutServlet extends HttpServlet {
@@ -51,22 +51,19 @@ public class CheckoutServlet extends HttpServlet {
         order.setTotal(total);
         order.setItems(orderItems);
 
-        try (Connection conn = orderDAO.getConnection()) {
-            conn.setAutoCommit(false);
+        ProductDAO productDAO = new ProductDAO();
 
-            int orderId = orderDAO.createOrder(conn, order);
-            orderDAO.insertOrderItems(conn, orderId, orderItems);
+        try {
+            // Use the combined method that creates order and decreases stock atomically
+            int orderId = orderDAO.createOrderWithItemsAndDecreaseStock(order, productDAO);
 
-            conn.commit();
-
-            // Save order ID in session for payment step
             session.setAttribute("currentOrderId", orderId);
             session.setAttribute("cart", null); // Clear cart after checkout
 
             resp.sendRedirect("payment.jsp");
 
         } catch (Exception e) {
-            throw new ServletException("Checkout failed", e);
+            throw new ServletException("Checkout failed: " + e.getMessage(), e);
         }
     }
 }

@@ -1,6 +1,9 @@
 package dao;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class PaymentDAO {
 
@@ -8,7 +11,8 @@ public class PaymentDAO {
     private String jdbcUsername = "postgres";
     private String jdbcPassword = "1234";
 
-    private Connection getConnection() throws SQLException {
+    // Keep it public if you want to get connection outside this class
+    public Connection getConnection() throws SQLException {
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
@@ -18,32 +22,23 @@ public class PaymentDAO {
         return DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
     }
 
-    public void createPayment(int orderId, String method) throws SQLException {
+    // This method assumes the connection and transaction are managed externally
+    public void createPayment(Connection conn, int orderId, String method) throws SQLException {
         String insertSql = "INSERT INTO payments (order_id, amount, method, status) " +
                 "SELECT id, total, ?, 'Completed' FROM orders WHERE id = ?";
         String updateOrderSql = "UPDATE orders SET status = 'Paid' WHERE id = ?";
 
-        try (Connection conn = getConnection()) {
-            conn.setAutoCommit(false); // start transaction
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql);
-                    PreparedStatement updateStmt = conn.prepareStatement(updateOrderSql)) {
+        try (PreparedStatement insertStmt = conn.prepareStatement(insertSql);
+                PreparedStatement updateStmt = conn.prepareStatement(updateOrderSql)) {
 
-                // Insert payment record
-                insertStmt.setString(1, method);
-                insertStmt.setInt(2, orderId);
-                insertStmt.executeUpdate();
+            // Insert payment record
+            insertStmt.setString(1, method);
+            insertStmt.setInt(2, orderId);
+            insertStmt.executeUpdate();
 
-                // Update order status
-                updateStmt.setInt(1, orderId);
-                updateStmt.executeUpdate();
-
-                conn.commit(); // commit transaction
-            } catch (SQLException e) {
-                conn.rollback(); // rollback on error
-                throw e;
-            } finally {
-                conn.setAutoCommit(true); // reset autocommit
-            }
+            // Update order status
+            updateStmt.setInt(1, orderId);
+            updateStmt.executeUpdate();
         }
     }
 }
