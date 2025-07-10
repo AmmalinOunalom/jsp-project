@@ -6,6 +6,7 @@ public class OrderItem {
     private int productId;
     private int quantity;
     private double price;
+    private String productName;
 
     public int getId() {
         return id;
@@ -45,5 +46,13 @@ public class OrderItem {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 }
